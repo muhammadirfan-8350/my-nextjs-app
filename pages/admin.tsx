@@ -110,13 +110,28 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const payload = token ? verifyToken(token) : null;
 
   if (!payload || payload.role !== 'admin') {
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false,
-      },
-    };
+    return { redirect: { destination: '/', permanent: false } };
   }
+
+  let campaigns: any[] = [];
+  try {
+    campaigns = await prisma.campaignData.findMany({
+      select: { id: true, campaignName: true, platform: true, spend: true, conversions: true },
+      take: 20,
+    });
+  } catch (e) {
+    console.error('DB error:', e);
+  }
+
+  return {
+    props: {
+      userName: payload.name ?? '',
+      campaigns,
+      products: [],
+      clients: [],
+    },
+  };
+};
 
 const campaigns = await prisma.campaignData.findMany({
   select: { id: true, campaignName: true, platform: true, spend: true, conversions: true },
