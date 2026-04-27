@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic';
 const DynamicChart = dynamic(() => import('../components/DashboardChart'), { ssr: false });
 
 type CampaignRow = {
-  Account_ID: string; Account_Name: string; Campaign: string; Date: string;
+  Account_ID: string; Account_Name: string; Product_Name: string; Campaign: string; Date: string;
   Spend: number; Clicks: number; CPC: number; Impressions: number; CPM: number;
   Conversions: number; Cost_Per_Conversion: number; In_App_actions: number;
   Cost_Per_In_app_action: number; Installs: number; CPI: number;
@@ -29,8 +29,9 @@ type DashboardProps = {
   chartData: ChartDataPoint[];
   appliedStartDate: string; appliedEndDate: string;
   appliedPlatform: string; appliedClient: string;
-  appliedAdGroup: string; appliedAccount: string;
-  allClients: string[]; allPlatforms: string[]; allAdGroups: string[]; allAccounts: string[];
+  appliedAdGroup: string; appliedAccount: string; appliedProduct: string;
+  allClients: string[]; allPlatforms: string[]; allAdGroups: string[];
+  allAccounts: string[]; allProducts: string[];
 };
 export type MetricDef = {
   key: string; label: string; shortLabel: string;
@@ -73,23 +74,24 @@ const PLATFORM_BADGE: Record<string, string> = {
 
 type ColDef = { key: string; label: string; width: string; render?: (r: CampaignRow) => React.ReactNode; numeric?: boolean; };
 const COLUMNS: ColDef[] = [
-  { key: 'Account_Name',        label: 'Account Name', width: 'min-w-[160px]' },
-  { key: 'Campaign',            label: 'Campaign',     width: 'min-w-[260px]' },
-  { key: 'Platform',            label: 'Platform',     width: 'min-w-[90px]',  render: r => <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${PLATFORM_BADGE[r.Platform] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>{r.Platform}</span> },
-  { key: 'Date',                label: 'Date',         width: 'min-w-[100px]' },
-  { key: 'Spend',               label: 'Spend',        width: 'min-w-[110px]', numeric: true, render: r => <span className="font-semibold">{fmtPKR(r.Spend)}</span> },
-  { key: 'Clicks',              label: 'Clicks',       width: 'min-w-[80px]',  numeric: true, render: r => fmtNum(r.Clicks) },
-  { key: 'CPC',                 label: 'CPC',          width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPC.toFixed(2)}` },
-  { key: 'Impressions',         label: 'Impressions',  width: 'min-w-[110px]', numeric: true, render: r => fmtNum(r.Impressions) },
-  { key: 'CPM',                 label: 'CPM',          width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPM.toFixed(2)}` },
-  { key: 'Conversions',         label: 'Conversions',  width: 'min-w-[110px]', numeric: true, render: r => fmtNum(r.Conversions) },
-  { key: 'Cost_Per_Conversion', label: 'CPA',          width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.Cost_Per_Conversion.toFixed(2)}` },
-  { key: 'In_App_actions',      label: 'In-App',       width: 'min-w-[90px]',  numeric: true, render: r => fmtNum(r.In_App_actions) },
-  { key: 'Installs',            label: 'Installs',     width: 'min-w-[90px]',  numeric: true, render: r => fmtNum(r.Installs) },
-  { key: 'CPI',                 label: 'CPI',          width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPI.toFixed(2)}` },
-  { key: 'Views',               label: 'Views',        width: 'min-w-[90px]',  numeric: true, render: r => fmtNum(r.Views) },
-  { key: 'CPV',                 label: 'CPV',          width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPV.toFixed(2)}` },
-  { key: 'Ad_group_Name',       label: 'Ad Group',     width: 'min-w-[160px]' },
+  { key: 'Account_Name',        label: 'Account Name',  width: 'min-w-[160px]' },
+  { key: 'Product_Name',        label: 'Product',       width: 'min-w-[140px]' },
+  { key: 'Campaign',            label: 'Campaign',      width: 'min-w-[260px]' },
+  { key: 'Platform',            label: 'Platform',      width: 'min-w-[90px]',  render: r => <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${PLATFORM_BADGE[r.Platform] || 'bg-slate-50 text-slate-600 border-slate-200'}`}>{r.Platform}</span> },
+  { key: 'Date',                label: 'Date',          width: 'min-w-[100px]' },
+  { key: 'Spend',               label: 'Spend',         width: 'min-w-[110px]', numeric: true, render: r => <span className="font-semibold">{fmtPKR(r.Spend)}</span> },
+  { key: 'Clicks',              label: 'Clicks',        width: 'min-w-[80px]',  numeric: true, render: r => fmtNum(r.Clicks) },
+  { key: 'CPC',                 label: 'CPC',           width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPC.toFixed(2)}` },
+  { key: 'Impressions',         label: 'Impressions',   width: 'min-w-[110px]', numeric: true, render: r => fmtNum(r.Impressions) },
+  { key: 'CPM',                 label: 'CPM',           width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPM.toFixed(2)}` },
+  { key: 'Conversions',         label: 'Conversions',   width: 'min-w-[110px]', numeric: true, render: r => fmtNum(r.Conversions) },
+  { key: 'Cost_Per_Conversion', label: 'CPA',           width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.Cost_Per_Conversion.toFixed(2)}` },
+  { key: 'In_App_actions',      label: 'In-App',        width: 'min-w-[90px]',  numeric: true, render: r => fmtNum(r.In_App_actions) },
+  { key: 'Installs',            label: 'Installs',      width: 'min-w-[90px]',  numeric: true, render: r => fmtNum(r.Installs) },
+  { key: 'CPI',                 label: 'CPI',           width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPI.toFixed(2)}` },
+  { key: 'Views',               label: 'Views',         width: 'min-w-[90px]',  numeric: true, render: r => fmtNum(r.Views) },
+  { key: 'CPV',                 label: 'CPV',           width: 'min-w-[90px]',  numeric: true, render: r => `PKR ${r.CPV.toFixed(2)}` },
+  { key: 'Ad_group_Name',       label: 'Ad Group',      width: 'min-w-[160px]' },
 ];
 
 // ── Filter Dropdown ────────────────────────────────────────────────────────────
@@ -204,7 +206,7 @@ function DateRangePicker({ startDate, endDate, onApply }: {
   );
 }
 
-// ── Metric Selector Dropdown ───────────────────────────────────────────────────
+// ── Metric Selector ────────────────────────────────────────────────────────────
 function MetricSelector({ current, onSelect, isBoxActive }: {
   current: MetricDef; onSelect: (m: MetricDef) => void; isBoxActive: boolean;
 }) {
@@ -233,15 +235,10 @@ function MetricSelector({ current, onSelect, isBoxActive }: {
 
   return (
     <div className="relative inline-flex" ref={ref}>
-      <div
-        onMouseDown={e => e.stopPropagation()}
-        onClick={handleOpen}
+      <div onMouseDown={e => e.stopPropagation()} onClick={handleOpen}
         className={`inline-flex items-center justify-center w-5 h-5 rounded cursor-pointer transition
-          ${isBoxActive ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-      >
-        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M7 10l5 5 5-5z" />
-        </svg>
+          ${isBoxActive ? 'text-white/70 hover:text-white hover:bg-white/20' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}>
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
       </div>
       {open && (
         <>
@@ -257,8 +254,7 @@ function MetricSelector({ current, onSelect, isBoxActive }: {
                 <div key={cat}>
                   <p className="px-3 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{cat}</p>
                   {METRIC_DEFS.filter(m => m.category === cat).map(m => (
-                    <div key={m.key}
-                      onMouseDown={e => e.stopPropagation()}
+                    <div key={m.key} onMouseDown={e => e.stopPropagation()}
                       onClick={e => { e.stopPropagation(); onSelect(m); setOpen(false); }}
                       className={`flex items-center gap-2.5 px-3 py-2 text-xs cursor-pointer hover:bg-slate-50 transition
                         ${current.key === m.key ? 'bg-slate-50 font-semibold text-slate-800' : 'text-slate-600'}`}>
@@ -321,11 +317,7 @@ function ModifyMetricsModal({ selectedMetrics, onClose, onApply }: {
                           ${isSel ? 'border-brand-300 bg-brand-50 text-brand-700' : isDisabled ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:bg-brand-50'}`}>
                         <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition
                           ${isSel ? 'bg-brand-500 border-brand-500' : 'border-slate-300'}`}>
-                          {isSel && (
-                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
+                          {isSel && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </span>
                         {m.label}
                       </button>
@@ -371,8 +363,7 @@ function ModifyMetricsModal({ selectedMetrics, onClose, onApply }: {
 
 // ── KPI Chart 3-dot Menu ───────────────────────────────────────────────────────
 function KpiChartMenu({ chartData, activeMetrics }: {
-  chartData: ChartDataPoint[];
-  activeMetrics: MetricDef[];
+  chartData: ChartDataPoint[]; activeMetrics: MetricDef[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -388,10 +379,7 @@ function KpiChartMenu({ chartData, activeMetrics }: {
   const exportCSV = () => {
     if (!chartData.length || !activeMetrics.length) return;
     const headers = ['Date', ...activeMetrics.map(m => m.label)];
-    const rows = chartData.map(d => [
-      d.date,
-      ...activeMetrics.map(m => String((d as any)[m.key] || 0)),
-    ]);
+    const rows = chartData.map(d => [d.date, ...activeMetrics.map(m => String((d as any)[m.key] || 0))]);
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -404,14 +392,10 @@ function KpiChartMenu({ chartData, activeMetrics }: {
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition text-slate-300 hover:text-slate-500"
-      >
+      <button onClick={() => setOpen(!open)}
+        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition text-slate-300 hover:text-slate-500">
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-          <circle cx="12" cy="5" r="1.5"/>
-          <circle cx="12" cy="12" r="1.5"/>
-          <circle cx="12" cy="19" r="1.5"/>
+          <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
         </svg>
       </button>
       {open && (
@@ -438,14 +422,12 @@ function KpiBox({ metric, value, isSelected, onToggle, onMetricChange }: {
   onToggle: () => void; onMetricChange: (m: MetricDef) => void;
 }) {
   return (
-    <div
-      onMouseDown={e => {
-        const target = e.target as HTMLElement;
-        if (!target.closest('[data-metric-arrow]')) onToggle();
-      }}
+    <div onMouseDown={e => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-metric-arrow]')) onToggle();
+    }}
       className={`relative flex-1 cursor-pointer select-none transition-colors border-r border-slate-200 last:border-r-0 min-w-0
-        ${isSelected ? `${metric.bgColor} text-white` : 'bg-white text-slate-800 hover:bg-slate-50'}`}
-    >
+        ${isSelected ? `${metric.bgColor} text-white` : 'bg-white text-slate-800 hover:bg-slate-50'}`}>
       <div className="px-4 py-3">
         <div className="flex items-center gap-1 mb-1 min-w-0">
           <span className={`text-xs font-semibold truncate ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>
@@ -534,11 +516,7 @@ function SmartTable({ rows, page, pageSize, total, onPageChange }: {
                       onClick={() => { const next = new Set(hiddenCols); next.has(col.key) ? next.delete(col.key) : next.add(col.key); setHiddenCols(next); }}
                       className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition">
                       <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${!hiddenCols.has(col.key) ? 'bg-brand-500 border-brand-500' : 'border-slate-300'}`}>
-                        {!hiddenCols.has(col.key) && (
-                          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                        {!hiddenCols.has(col.key) && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                       </span>
                       {col.label}
                     </button>
@@ -620,8 +598,8 @@ function SmartTable({ rows, page, pageSize, total, onPageChange }: {
 export default function DashboardPage({
   userName, campaignRows, metrics, chartData,
   appliedStartDate, appliedEndDate,
-  appliedPlatform, appliedClient, appliedAdGroup, appliedAccount,
-  allClients, allPlatforms, allAdGroups, allAccounts,
+  appliedPlatform, appliedClient, appliedAdGroup, appliedAccount, appliedProduct,
+  allClients, allPlatforms, allAdGroups, allAccounts, allProducts,
 }: DashboardProps) {
   const router = useRouter();
   const [search, setSearch]         = useState('');
@@ -639,9 +617,7 @@ export default function DashboardPage({
   ];
 
   const [kpiMetrics, setKpiMetrics] = useState<MetricDef[]>(defaultMetrics);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
-    new Set(defaultMetrics.map(m => m.key))
-  );
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set(defaultMetrics.map(m => m.key)));
 
   const toggleSelected = (key: string) => {
     setSelectedKeys(prev => {
@@ -678,12 +654,14 @@ export default function DashboardPage({
     const platform = overrides.platform ?? appliedPlatform;
     const adGroup  = overrides.adGroup  ?? appliedAdGroup;
     const account  = overrides.account  ?? appliedAccount;
+    const product  = overrides.product  ?? appliedProduct;
     const start    = overrides.start    ?? appliedStartDate;
     const end      = overrides.end      ?? appliedEndDate;
     if (client   && !client.startsWith('All'))   params.set('client',    client);
     if (platform && !platform.startsWith('All')) params.set('platform',  platform);
     if (adGroup  && !adGroup.startsWith('All'))  params.set('adGroup',   adGroup);
     if (account  && !account.startsWith('All'))  params.set('account',   account);
+    if (product  && !product.startsWith('All'))  params.set('product',   product);
     if (start) params.set('startDate', start);
     if (end)   params.set('endDate',   end);
     setNavigating(true);
@@ -692,14 +670,15 @@ export default function DashboardPage({
 
   const resetFilters = () => { setSearch(''); setPage(1); setNavigating(true); router.push('/dashboard'); };
   const hasFilters = !!appliedClient || !!appliedPlatform || !!appliedAdGroup ||
-    !!appliedAccount || !!appliedStartDate || !!appliedEndDate || !!search;
+    !!appliedAccount || !!appliedProduct || !!appliedStartDate || !!appliedEndDate || !!search;
 
   const filteredRows = useMemo(() => {
     if (!search) return campaignRows;
     const q = search.toLowerCase();
     return campaignRows.filter(r =>
       String(r.Campaign || '').toLowerCase().includes(q) ||
-      String(r.Account_Name || '').toLowerCase().includes(q));
+      String(r.Account_Name || '').toLowerCase().includes(q) ||
+      String(r.Product_Name || '').toLowerCase().includes(q));
   }, [campaignRows, search]);
 
   const currentRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
@@ -714,11 +693,12 @@ export default function DashboardPage({
       if (appliedPlatform && !appliedPlatform.startsWith('All')) params.set('platform', appliedPlatform);
       if (appliedAdGroup  && !appliedAdGroup.startsWith('All'))  params.set('adGroup',  appliedAdGroup);
       if (appliedAccount  && !appliedAccount.startsWith('All'))  params.set('account',  appliedAccount);
+      if (appliedProduct  && !appliedProduct.startsWith('All'))  params.set('product',  appliedProduct);
       const res = await fetch(`/api/exportData?${params.toString()}`);
       const data = await res.json();
       const rows: CampaignRow[] = data.rows;
-      const header = ['Account ID','Account Name','Campaign','Platform','Date','Spend','Clicks','CPC','Impressions','CPM','Conversions','CPA','In-App Actions','Cost/In-App','Installs','CPI','Views','CPV','Ad Group'];
-      const csvRows = rows.map(r => [r.Account_ID,r.Account_Name,`"${r.Campaign}"`,r.Platform,r.Date,r.Spend,r.Clicks,r.CPC,r.Impressions,r.CPM,r.Conversions,r.Cost_Per_Conversion,r.In_App_actions,r.Cost_Per_In_app_action,r.Installs,r.CPI,r.Views,r.CPV,`"${r.Ad_group_Name}"`]);
+      const header = ['Account ID','Account Name','Product Name','Campaign','Platform','Date','Spend','Clicks','CPC','Impressions','CPM','Conversions','CPA','In-App Actions','Cost/In-App','Installs','CPI','Views','CPV','Ad Group'];
+      const csvRows = rows.map(r => [r.Account_ID, r.Account_Name, r.Product_Name, `"${r.Campaign}"`, r.Platform, r.Date, r.Spend, r.Clicks, r.CPC, r.Impressions, r.CPM, r.Conversions, r.Cost_Per_Conversion, r.In_App_actions, r.Cost_Per_In_app_action, r.Installs, r.CPI, r.Views, r.CPV, `"${r.Ad_group_Name}"`]);
       const csv = [header, ...csvRows].map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -764,6 +744,7 @@ export default function DashboardPage({
             <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
           </div>
           <FilterDropdown label="Client"   value={appliedClient   || 'All clients'}   options={['All clients',   ...allClients]}   onChange={v => applyFilters({ client: v })}   />
+          <FilterDropdown label="Product"  value={appliedProduct  || 'All products'}  options={['All products',  ...allProducts]}  onChange={v => applyFilters({ product: v })}  />
           <FilterDropdown label="Platform" value={appliedPlatform || 'All platforms'} options={['All platforms', ...allPlatforms]} onChange={v => applyFilters({ platform: v })} />
           <FilterDropdown label="Ad Group" value={appliedAdGroup  || 'All ad groups'} options={['All ad groups', ...allAdGroups]}  onChange={v => applyFilters({ adGroup: v })}  />
           <FilterDropdown label="Account"  value={appliedAccount  || 'All accounts'}  options={['All accounts',  ...allAccounts]}  onChange={v => applyFilters({ account: v })}  />
@@ -790,11 +771,7 @@ export default function DashboardPage({
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[240px_1fr] lg:px-6">
         <Sidebar />
         <div className="space-y-5 min-w-0">
-
-          {/* ── KPI + Chart Card ── */}
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-
-            {/* KPI Row */}
             <div className="flex border-b border-slate-200 overflow-x-auto">
               {kpiMetrics.map((metric, i) => (
                 <KpiBox
@@ -804,9 +781,7 @@ export default function DashboardPage({
                   isSelected={selectedKeys.has(metric.key)}
                   onToggle={() => toggleSelected(metric.key)}
                   onMetricChange={m => {
-                    const next = [...kpiMetrics];
-                    next[i] = m;
-                    setKpiMetrics(next);
+                    const next = [...kpiMetrics]; next[i] = m; setKpiMetrics(next);
                     setSelectedKeys(prev => {
                       const next2 = new Set(prev);
                       if (next2.has(metric.key)) { next2.delete(metric.key); next2.add(m.key); }
@@ -815,8 +790,6 @@ export default function DashboardPage({
                   }}
                 />
               ))}
-
-              {/* Metrics + 3-dot */}
               <div className="flex items-center gap-1 px-3 border-l border-slate-200 bg-slate-50/50 flex-shrink-0">
                 <button onClick={() => setModifyOpen(true)}
                   className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg hover:bg-slate-100 transition text-slate-500 hover:text-slate-700">
@@ -828,8 +801,6 @@ export default function DashboardPage({
                 <KpiChartMenu chartData={chartData} activeMetrics={activeChartMetrics} />
               </div>
             </div>
-
-            {/* Chart */}
             <DynamicChart chartData={chartData} activeMetrics={activeChartMetrics} />
           </div>
 
@@ -861,17 +832,19 @@ export const getServerSideProps = async ({ req, query }: any) => {
   const client    = (query.client    as string) || '';
   const adGroup   = (query.adGroup   as string) || '';
   const account   = (query.account   as string) || '';
+  const product   = (query.product   as string) || '';
 
   const conditions: string[] = [];
   if (startDate && endDate) conditions.push(`CONVERT(DATE, [Date]) >= '${startDate}' AND CONVERT(DATE, [Date]) <= '${endDate}'`);
   if (platform)             conditions.push(`[Platform] = '${platform.replace(/'/g, "''")}'`);
-  if (client)               conditions.push(`[Account_Name] = '${client.replace(/'/g, "''")}'`);
+  if (client)               conditions.push(`[Account Name] = '${client.replace(/'/g, "''")}'`);
   if (adGroup)              conditions.push(`[Ad_group_Name] = '${adGroup.replace(/'/g, "''")}'`);
   if (account)              conditions.push(`[Account_ID] = '${account.replace(/'/g, "''")}'`);
+  if (product)              conditions.push(`[Product Name] = '${product.replace(/'/g, "''")}'`);
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   try {
-    const [metricsResult, previewRows, chartRows, dc, dp, da, dac] = await Promise.all([
+    const [metricsResult, previewRows, chartRows, dc, dp, da, dac, dprod] = await Promise.all([
       prisma.$queryRawUnsafe(`
         SELECT
           ISNULL(SUM(CAST([Spend]          AS DECIMAL(18,2))), 0) AS totalSpend,
@@ -881,25 +854,35 @@ export const getServerSideProps = async ({ req, query }: any) => {
           ISNULL(SUM(CAST([Installs]       AS DECIMAL(18,0))), 0) AS totalInstalls,
           ISNULL(SUM(CAST([In_App_actions] AS DECIMAL(18,0))), 0) AS totalInAppActions,
           ISNULL(SUM(CAST([Views]          AS DECIMAL(18,0))), 0) AS totalViews
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash] ${whereClause}
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view] ${whereClause}
       `) as Promise<any[]>,
+
       prisma.$queryRawUnsafe(`
         SELECT TOP 500
           CAST([Account_ID] AS NVARCHAR(50)) AS Account_ID,
-          [Account_Name], [Campaign],
+          [Account Name]    AS Account_Name,
+          [Product Name]    AS Product_Name,
+          [Campaign],
           CONVERT(NVARCHAR(10), [Date], 120) AS Date,
-          CAST([Spend] AS FLOAT) AS Spend, CAST([Clicks] AS BIGINT) AS Clicks,
-          CAST([CPC] AS FLOAT) AS CPC, CAST([Impressions] AS BIGINT) AS Impressions,
-          CAST([CPM] AS FLOAT) AS CPM, CAST([Conversions] AS FLOAT) AS Conversions,
-          CAST([Cost_Per_Conversion] AS FLOAT) AS Cost_Per_Conversion,
-          CAST([In_App_actions] AS FLOAT) AS In_App_actions,
-          CAST([Cost_Per_In_app_action] AS FLOAT) AS Cost_Per_In_app_action,
-          CAST([Installs] AS FLOAT) AS Installs, CAST([CPI] AS FLOAT) AS CPI,
-          CAST([Views] AS BIGINT) AS Views, CAST([CPV] AS FLOAT) AS CPV,
-          [Ad_group_Name], [Platform]
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
+          CAST([Spend]                  AS FLOAT)  AS Spend,
+          CAST([Clicks]                 AS BIGINT) AS Clicks,
+          CAST([CPC]                    AS FLOAT)  AS CPC,
+          CAST([Impressions]            AS BIGINT) AS Impressions,
+          CAST([CPM]                    AS FLOAT)  AS CPM,
+          CAST([Conversions]            AS FLOAT)  AS Conversions,
+          CAST([Cost_Per_Conversion]    AS FLOAT)  AS Cost_Per_Conversion,
+          CAST([In_App_actions]         AS FLOAT)  AS In_App_actions,
+          CAST([Cost_Per_In_app_action] AS FLOAT)  AS Cost_Per_In_app_action,
+          CAST([Installs]               AS FLOAT)  AS Installs,
+          CAST([CPI]                    AS FLOAT)  AS CPI,
+          CAST([Views]                  AS BIGINT) AS Views,
+          CAST([CPV]                    AS FLOAT)  AS CPV,
+          [Ad_group_Name],
+          [Platform]
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view]
         ${whereClause} ORDER BY [Date] DESC
       `) as Promise<any[]>,
+
       prisma.$queryRawUnsafe(`
         SELECT
           CONVERT(NVARCHAR(10), [Date], 120) AS date,
@@ -916,15 +899,17 @@ export const getServerSideProps = async ({ req, query }: any) => {
             THEN (SUM(CAST([Spend] AS FLOAT)) / SUM(CAST([Impressions] AS FLOAT))) * 1000 ELSE 0 END AS CPM,
           CASE WHEN SUM(CAST([Conversions] AS FLOAT)) > 0
             THEN SUM(CAST([Spend] AS FLOAT)) / SUM(CAST([Conversions] AS FLOAT)) ELSE 0 END AS Cost_Per_Conversion
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view]
         ${whereClause}
         GROUP BY CONVERT(NVARCHAR(10), [Date], 120)
         ORDER BY date ASC
       `) as Promise<any[]>,
-      prisma.$queryRawUnsafe(`SELECT DISTINCT [Account_Name]  AS val FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash] WHERE [Account_Name]  IS NOT NULL ORDER BY val`) as Promise<any[]>,
-      prisma.$queryRawUnsafe(`SELECT DISTINCT [Platform]      AS val FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash] WHERE [Platform]      IS NOT NULL ORDER BY val`) as Promise<any[]>,
-      prisma.$queryRawUnsafe(`SELECT DISTINCT [Ad_group_Name] AS val FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash] WHERE [Ad_group_Name] IS NOT NULL ORDER BY val`) as Promise<any[]>,
-      prisma.$queryRawUnsafe(`SELECT DISTINCT [Account_ID]    AS val FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash] WHERE [Account_ID]    IS NOT NULL ORDER BY val`) as Promise<any[]>,
+
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Account Name]  AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Account Name]  IS NOT NULL ORDER BY val`) as Promise<any[]>,
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Platform]      AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Platform]      IS NOT NULL ORDER BY val`) as Promise<any[]>,
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Ad_group_Name] AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Ad_group_Name] IS NOT NULL ORDER BY val`) as Promise<any[]>,
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Account_ID]    AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Account_ID]    IS NOT NULL ORDER BY val`) as Promise<any[]>,
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Product Name]  AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Product Name]  IS NOT NULL ORDER BY val`) as Promise<any[]>,
     ]);
 
     const m = (metricsResult as any[])[0] ?? {};
@@ -933,12 +918,13 @@ export const getServerSideProps = async ({ req, query }: any) => {
       props: {
         userName: payload.name,
         appliedStartDate: startDate, appliedEndDate: endDate,
-        appliedPlatform: platform, appliedClient: client,
-        appliedAdGroup: adGroup, appliedAccount: account,
-        allClients:   (dc  as any[]).map(r => String(r.val || '')).filter(Boolean),
-        allPlatforms: (dp  as any[]).map(r => String(r.val || '')).filter(Boolean),
-        allAdGroups:  (da  as any[]).map(r => String(r.val || '')).filter(Boolean),
-        allAccounts:  (dac as any[]).map(r => String(r.val || '')).filter(Boolean),
+        appliedPlatform: platform,  appliedClient: client,
+        appliedAdGroup: adGroup,    appliedAccount: account, appliedProduct: product,
+        allClients:   (dc    as any[]).map(r => String(r.val || '')).filter(Boolean),
+        allPlatforms: (dp    as any[]).map(r => String(r.val || '')).filter(Boolean),
+        allAdGroups:  (da    as any[]).map(r => String(r.val || '')).filter(Boolean),
+        allAccounts:  (dac   as any[]).map(r => String(r.val || '')).filter(Boolean),
+        allProducts:  (dprod as any[]).map(r => String(r.val || '')).filter(Boolean),
         metrics: {
           totalSpend:        Number(m.totalSpend)        || 0,
           totalConversions:  Number(m.totalConversions)  || 0,
@@ -964,6 +950,7 @@ export const getServerSideProps = async ({ req, query }: any) => {
         campaignRows: (previewRows as any[]).map(r => ({
           Account_ID:             String(r.Account_ID             || ''),
           Account_Name:           String(r.Account_Name           || ''),
+          Product_Name:           String(r.Product_Name           || ''),
           Campaign:               String(r.Campaign               || ''),
           Date:                   String(r.Date                   || ''),
           Spend:                  Number(r.Spend)                 || 0,
@@ -990,8 +977,8 @@ export const getServerSideProps = async ({ req, query }: any) => {
       props: {
         userName: payload.name,
         appliedStartDate: '', appliedEndDate: '', appliedPlatform: '', appliedClient: '',
-        appliedAdGroup: '', appliedAccount: '',
-        allClients: [], allPlatforms: [], allAdGroups: [], allAccounts: [],
+        appliedAdGroup: '', appliedAccount: '', appliedProduct: '',
+        allClients: [], allPlatforms: [], allAdGroups: [], allAccounts: [], allProducts: [],
         metrics: { totalSpend: 0, totalConversions: 0, totalClicks: 0, totalImpressions: 0, totalInstalls: 0, totalInAppActions: 0, totalViews: 0 },
         chartData: [], campaignRows: [],
       },

@@ -5,7 +5,7 @@ import { useState } from 'react';
 const routes = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Analytics', href: '/analytics' },
-  { label: 'Clients', href: '/clients' },
+  { label: 'Custom Report', href: '/clients' },
   { label: 'Admin', href: '/admin' },
 ];
 

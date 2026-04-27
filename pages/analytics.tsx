@@ -21,18 +21,15 @@ type Metrics = {
   totalSpend: number; totalImpressions: number; totalClicks: number;
   totalConversions: number; totalInstalls: number; totalInAppActions: number; totalViews: number;
 };
-
 type AnalyticsProps = {
   userName: string;
   current7D: DayData[]; previous7D: DayData[];
-  platformData: PlatformData[];
-  clientData: ClientData[];
-  monthData: MonthData[];
-  metrics: Metrics;
+  platformData: PlatformData[]; clientData: ClientData[];
+  monthData: MonthData[]; metrics: Metrics;
   appliedStartDate: string; appliedEndDate: string;
   appliedPlatform: string; appliedClient: string;
-  appliedSelectedMonth: string;
-  allClients: string[]; allPlatforms: string[];
+  appliedProduct: string; appliedSelectedMonth: string;
+  allClients: string[]; allPlatforms: string[]; allProducts: string[];
 };
 
 function FilterDropdown({ label, value, options, onChange }: {
@@ -128,9 +125,7 @@ function DateRangePicker({ startDate, endDate, onApply }: {
                   </button>
                 ))}
               </div>
-              {tempStart && tempEnd && tempStart > tempEnd && (
-                <p className="text-xs text-red-500">⚠ Start must be before end date</p>
-              )}
+              {tempStart && tempEnd && tempStart > tempEnd && <p className="text-xs text-red-500">⚠ Start must be before end date</p>}
               <div className="flex gap-2">
                 <button onClick={() => { onApply('', ''); setOpen(false); }}
                   className="flex-1 rounded-lg border border-slate-200 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 transition">Clear</button>
@@ -149,7 +144,7 @@ function DateRangePicker({ startDate, endDate, onApply }: {
 export default function AnalyticsPage({
   userName, current7D, previous7D, platformData, clientData, monthData, metrics,
   appliedStartDate, appliedEndDate, appliedPlatform, appliedClient,
-  appliedSelectedMonth, allClients, allPlatforms,
+  appliedProduct, appliedSelectedMonth, allClients, allPlatforms, allProducts,
 }: AnalyticsProps) {
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
@@ -165,22 +160,22 @@ export default function AnalyticsPage({
     const params = new URLSearchParams();
     const client        = overrides.client        ?? appliedClient;
     const platform      = overrides.platform      ?? appliedPlatform;
+    const product       = overrides.product       ?? appliedProduct;
     const start         = overrides.start         ?? appliedStartDate;
     const end           = overrides.end           ?? appliedEndDate;
     const selectedMonth = overrides.selectedMonth ?? appliedSelectedMonth;
-
     if (client   && !client.startsWith('All'))   params.set('client',    client);
     if (platform && !platform.startsWith('All')) params.set('platform',  platform);
+    if (product  && !product.startsWith('All'))  params.set('product',   product);
     if (start)  params.set('startDate',     start);
     if (end)    params.set('endDate',       end);
     if (selectedMonth) params.set('selectedMonth', selectedMonth);
-
     setNavigating(true);
     router.push(params.toString() ? `/analytics?${params.toString()}` : '/analytics');
   };
 
   const resetFilters = () => { setNavigating(true); router.push('/analytics'); };
-  const hasFilters = !!appliedClient || !!appliedPlatform || !!appliedStartDate || !!appliedEndDate;
+  const hasFilters = !!appliedClient || !!appliedPlatform || !!appliedProduct || !!appliedStartDate || !!appliedEndDate;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -203,8 +198,9 @@ export default function AnalyticsPage({
             </svg>
             <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
           </div>
-          <FilterDropdown label="Client"   value={appliedClient   || 'All clients'}   options={['All clients',   ...allClients]}   onChange={(v) => applyFilters({ client: v })}   />
-          <FilterDropdown label="Platform" value={appliedPlatform || 'All platforms'} options={['All platforms', ...allPlatforms]} onChange={(v) => applyFilters({ platform: v })} />
+          <FilterDropdown label="Client"   value={appliedClient   || 'All clients'}   options={['All clients',   ...allClients]}   onChange={v => applyFilters({ client: v })}   />
+          <FilterDropdown label="Product"  value={appliedProduct  || 'All products'}  options={['All products',  ...allProducts]}  onChange={v => applyFilters({ product: v })}  />
+          <FilterDropdown label="Platform" value={appliedPlatform || 'All platforms'} options={['All platforms', ...allPlatforms]} onChange={v => applyFilters({ platform: v })} />
           <DateRangePicker
             startDate={appliedStartDate || ''}
             endDate={appliedEndDate || ''}
@@ -227,11 +223,10 @@ export default function AnalyticsPage({
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[280px_1fr] lg:px-6">
         <Sidebar />
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <MetricCard title="Total Spend"  value={metrics.totalSpend}        trend={5.0}  />
             <MetricCard title="Impressions"  value={metrics.totalImpressions}  trend={1.2}  />
             <MetricCard title="Clicks"       value={metrics.totalClicks}       trend={4.4}  />
-         
             <MetricCard title="App Installs" value={metrics.totalInstalls}     trend={-2.0} />
             <MetricCard title="Engagement"   value={metrics.totalInAppActions} trend={6.2}  />
             <MetricCard title="Conversions"  value={metrics.totalConversions}  trend={11.4} />
@@ -259,19 +254,21 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
   const endDate       = (query.endDate       as string) || '';
   const platform      = (query.platform      as string) || '';
   const client        = (query.client        as string) || '';
+  const product       = (query.product       as string) || '';
   const selectedMonth = (query.selectedMonth as string) || '';
 
   const conditions: string[] = [];
   if (startDate && endDate) conditions.push(`CONVERT(DATE, [Date]) >= '${startDate}' AND CONVERT(DATE, [Date]) <= '${endDate}'`);
   if (platform)             conditions.push(`[Platform] = '${platform.replace(/'/g, "''")}'`);
-  if (client)               conditions.push(`[Account_Name] = '${client.replace(/'/g, "''")}'`);
+  if (client)               conditions.push(`[Account Name] = '${client.replace(/'/g, "''")}'`);
+  if (product)              conditions.push(`[Product Name] = '${product.replace(/'/g, "''")}'`);
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const andClause   = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : '';
 
   try {
     const [
       metricsResult, current7D, previous7D, platformData,
-      clientData, monthData, distinctClients, distinctPlatforms,
+      clientData, monthData, distinctClients, distinctPlatforms, distinctProducts,
     ] = await Promise.all([
 
       prisma.$queryRawUnsafe(`
@@ -283,8 +280,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
           ISNULL(SUM(CAST([Installs]       AS DECIMAL(18,0))), 0) AS totalInstalls,
           ISNULL(SUM(CAST([In_App_actions] AS DECIMAL(18,0))), 0) AS totalInAppActions,
           ISNULL(SUM(CAST([Views]          AS DECIMAL(18,0))), 0) AS totalViews
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
-        ${whereClause}
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view] ${whereClause}
       `) as Promise<any[]>,
 
       prisma.$queryRawUnsafe(`
@@ -292,7 +288,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
           ISNULL(SUM(CAST([Spend] AS FLOAT)), 0) as spend,
           ISNULL(SUM(CAST([Impressions] AS BIGINT)), 0) as impressions,
           ISNULL(SUM(CAST([Clicks] AS BIGINT)), 0) as clicks
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view]
         WHERE CONVERT(DATE, [Date]) >= DATEADD(DAY, -7, CAST(GETDATE() AS DATE))
           AND CONVERT(DATE, [Date]) < CAST(GETDATE() AS DATE) ${andClause}
         GROUP BY CONVERT(NVARCHAR(10), [Date], 120) ORDER BY date ASC
@@ -303,7 +299,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
           ISNULL(SUM(CAST([Spend] AS FLOAT)), 0) as spend,
           ISNULL(SUM(CAST([Impressions] AS BIGINT)), 0) as impressions,
           ISNULL(SUM(CAST([Clicks] AS BIGINT)), 0) as clicks
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view]
         WHERE CONVERT(DATE, [Date]) >= DATEADD(DAY, -14, CAST(GETDATE() AS DATE))
           AND CONVERT(DATE, [Date]) < DATEADD(DAY, -7, CAST(GETDATE() AS DATE)) ${andClause}
         GROUP BY CONVERT(NVARCHAR(10), [Date], 120) ORDER BY date ASC
@@ -315,18 +311,18 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
           ISNULL(SUM(CAST([Impressions] AS BIGINT)), 0) as impressions,
           ISNULL(SUM(CAST([Clicks] AS BIGINT)), 0) as clicks,
           ISNULL(SUM(CAST([Conversions] AS FLOAT)), 0) as conversions
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view]
         ${whereClause ? whereClause + ' AND [Platform] IS NOT NULL' : 'WHERE [Platform] IS NOT NULL'}
         GROUP BY [Platform] ORDER BY spend DESC
       `) as Promise<any[]>,
 
       prisma.$queryRawUnsafe(`
-        SELECT TOP 10 [Account_Name] as client,
+        SELECT TOP 10 [Account Name] as client,
           ISNULL(SUM(CAST([Spend] AS FLOAT)), 0) as spend,
           ISNULL(SUM(CAST([Installs] AS FLOAT)), 0) as installs
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
-        ${whereClause ? whereClause + ' AND [Account_Name] IS NOT NULL' : 'WHERE [Account_Name] IS NOT NULL'}
-        GROUP BY [Account_Name] ORDER BY spend DESC
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view]
+        ${whereClause ? whereClause + ' AND [Account Name] IS NOT NULL' : 'WHERE [Account Name] IS NOT NULL'}
+        GROUP BY [Account Name] ORDER BY spend DESC
       `) as Promise<any[]>,
 
       prisma.$queryRawUnsafe(`
@@ -344,7 +340,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
             THEN ISNULL(SUM(CAST([Spend] AS FLOAT)), 0) / SUM(CAST([Conversions] AS FLOAT))
             ELSE 0
           END as cpr
-        FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash]
+        FROM [Campaign Data].[dbo].[Jazz_GSM_view]
         ${whereClause}
         GROUP BY
           FORMAT([Date], 'MMM yyyy'),
@@ -355,8 +351,9 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
         ORDER BY yr ASC, mo ASC, actualDate ASC
       `) as Promise<any[]>,
 
-      prisma.$queryRawUnsafe(`SELECT DISTINCT [Account_Name] AS val FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash] WHERE [Account_Name] IS NOT NULL ORDER BY val`) as Promise<any[]>,
-      prisma.$queryRawUnsafe(`SELECT DISTINCT [Platform]     AS val FROM [Campaign Data].[dbo].[fact_valuation_jazz_cash] WHERE [Platform]     IS NOT NULL ORDER BY val`) as Promise<any[]>,
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Account Name] AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Account Name] IS NOT NULL ORDER BY val`) as Promise<any[]>,
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Platform]     AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Platform]     IS NOT NULL ORDER BY val`) as Promise<any[]>,
+      prisma.$queryRawUnsafe(`SELECT DISTINCT [Product Name] AS val FROM [Campaign Data].[dbo].[Jazz_GSM_view] WHERE [Product Name] IS NOT NULL ORDER BY val`) as Promise<any[]>,
     ]);
 
     const m = (metricsResult as any[])[0] ?? {};
@@ -368,9 +365,11 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
         appliedEndDate:       endDate,
         appliedPlatform:      platform,
         appliedClient:        client,
+        appliedProduct:       product,
         appliedSelectedMonth: selectedMonth,
         allClients:   (distinctClients   as any[]).map(r => String(r.val || '')).filter(Boolean),
         allPlatforms: (distinctPlatforms as any[]).map(r => String(r.val || '')).filter(Boolean),
+        allProducts:  (distinctProducts  as any[]).map(r => String(r.val || '')).filter(Boolean),
         metrics: {
           totalSpend:        Number(m.totalSpend)        || 0,
           totalConversions:  Number(m.totalConversions)  || 0,
@@ -403,7 +402,8 @@ export const getServerSideProps: GetServerSideProps = async ({ req, query }: any
       props: {
         userName: payload.name,
         appliedStartDate: '', appliedEndDate: '', appliedPlatform: '', appliedClient: '',
-        appliedSelectedMonth: '', allClients: [], allPlatforms: [],
+        appliedProduct: '', appliedSelectedMonth: '',
+        allClients: [], allPlatforms: [], allProducts: [],
         metrics: { totalSpend: 0, totalConversions: 0, totalClicks: 0, totalImpressions: 0, totalInstalls: 0, totalInAppActions: 0, totalViews: 0 },
         current7D: [], previous7D: [], platformData: [], clientData: [], monthData: [],
       },
