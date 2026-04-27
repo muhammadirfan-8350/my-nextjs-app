@@ -231,7 +231,7 @@ export default function AnalyticsPage({
             <MetricCard title="Total Spend"  value={metrics.totalSpend}        trend={5.0}  />
             <MetricCard title="Impressions"  value={metrics.totalImpressions}  trend={1.2}  />
             <MetricCard title="Clicks"       value={metrics.totalClicks}       trend={4.4}  />
-            <MetricCard title="Sales"        value={metrics.totalConversions}  trend={3.1}  />
+         
             <MetricCard title="App Installs" value={metrics.totalInstalls}     trend={-2.0} />
             <MetricCard title="Engagement"   value={metrics.totalInAppActions} trend={6.2}  />
             <MetricCard title="Conversions"  value={metrics.totalConversions}  trend={11.4} />
