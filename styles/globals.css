@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  min-height: 100vh;
+}
+
+* {
+  @apply box-border;
+}
+
+button,
+input,
+select,
+textarea {
+  @apply outline-none;
+}
+
+::selection {
+  @apply bg-brand-100 text-slate-900;
+}
