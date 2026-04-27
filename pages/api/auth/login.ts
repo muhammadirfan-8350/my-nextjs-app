@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Create a JWT token for the authenticated user
-    const token = createToken({ email: user.email, name: user.name, role: user.role });
+    const token = createToken({ email: user.email, name: user.name ?? '', role: user.role ?? 'user' });
 
     // Set the token as a HttpOnly cookie
     res.setHeader('Set-Cookie', createAuthHeaderValue(token));

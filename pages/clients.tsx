@@ -1,7 +1,6 @@
 import { GetServerSideProps } from 'next';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
-import prisma from '../lib/prisma';
 import { getCookieToken, verifyToken } from '../lib/auth';
 
 type ClientPageProps = {
@@ -32,7 +31,11 @@ export default function ClientsPage({ userName, clients }: ClientPageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {clients.map((client) => (
+                  {clients.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-slate-400">No clients found</td>
+                    </tr>
+                  ) : clients.map((client) => (
                     <tr key={client.id} className="odd:bg-slate-50 hover:bg-slate-100">
                       <td className="border-b border-slate-200 px-4 py-4 font-medium text-slate-900">{client.name}</td>
                       <td className="border-b border-slate-200 px-4 py-4">{client.industry}</td>
@@ -55,30 +58,13 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const payload = token ? verifyToken(token) : null;
 
   if (!payload) {
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false,
-      },
-    };
+    return { redirect: { destination: '/', permanent: false } };
   }
-
-  const clients = await prisma.client.findMany({
-    include: {
-      campaigns: true,
-    },
-  });
 
   return {
     props: {
-      userName: payload.name,
-      clients: clients.map((client) => ({
-        id: client.id,
-        name: client.name,
-        industry: client.industry,
-        status: client.status,
-        campaigns: client.campaigns.length,
-      })),
+      userName: payload.name ?? '',
+      clients: [],
     },
   };
 };

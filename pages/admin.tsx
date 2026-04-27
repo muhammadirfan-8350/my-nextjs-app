@@ -118,11 +118,12 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
     };
   }
 
-  const [campaigns, products, clients] = await Promise.all([
-    prisma.campaignData.findMany({ select: { id: true, campaignName: true, platform: true, spend: true, conversions: true }, take: 20 }),
-    prisma.productPerformance.findMany({ select: { id: true, name: true, spend: true, conversions: true }, take: 20 }),
-    prisma.client.findMany({ select: { id: true, name: true, industry: true, status: true } }),
-  ]);
+const campaigns = await prisma.campaignData.findMany({
+  select: { id: true, campaignName: true, platform: true, spend: true, conversions: true },
+  take: 20,
+});
+const products: any[] = [];
+const clients: any[] = [];
 
   return {
     props: {

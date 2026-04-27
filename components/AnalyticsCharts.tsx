@@ -136,7 +136,11 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, payload }:
   const y = cy + r * Math.sin(-midAngle * R);
   const pct = parseFloat(payload.percent);
   if (pct < 5) return null;
-  return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}>{`${pct.toFixed(1)}%`}</text>;
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}>
+      {`${pct.toFixed(1)}%`}
+    </text>
+  );
 };
 
 // ─── Data Table ────────────────────────────────────────────────────────────────
@@ -201,7 +205,7 @@ function DataTable({ columns, rows }: {
   );
 }
 
-// ─── Chart Menu with Sort Submenu ──────────────────────────────────────────────
+// ─── Chart Menu ────────────────────────────────────────────────────────────────
 function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, currentSort }: {
   onFullView: () => void;
   onExport: () => void;
@@ -240,7 +244,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
           <div className="fixed inset-0 z-10" onClick={close} />
           <div className="absolute right-0 top-8 z-20 w-48 rounded-xl border border-slate-100 bg-white shadow-lg">
 
-            {/* Full View */}
             <button onClick={() => { onFullView(); close(); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50 transition rounded-t-xl">
               <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -251,7 +254,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
 
             <div className="border-t border-slate-100" />
 
-            {/* Show as table */}
             <button onClick={() => { onTable(); close(); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50 transition">
               <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -262,7 +264,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
 
             <div className="border-t border-slate-100" />
 
-            {/* Export */}
             <button onClick={() => { onExport(); close(); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50 transition">
               <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -273,7 +274,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
 
             <div className="border-t border-slate-100" />
 
-            {/* Sort by with submenu */}
             <div className="relative">
               <button onClick={() => setSortOpen(!sortOpen)}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-xs text-slate-600 hover:bg-slate-50 transition rounded-b-xl">
@@ -290,7 +290,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
 
               {sortOpen && (
                 <div className="absolute right-full top-0 mr-1 w-52 rounded-xl border border-slate-100 bg-white shadow-xl z-30 overflow-hidden">
-                  {/* Column checkmarks */}
                   {sortColumns.map(col => (
                     <button key={col.key}
                       onClick={() => {
@@ -310,7 +309,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
 
                   <div className="border-t border-slate-100" />
 
-                  {/* Sort Descending */}
                   <button
                     onClick={() => {
                       const key = currentSort?.key || sortColumns[0]?.key;
@@ -328,7 +326,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
                     Sort descending
                   </button>
 
-                  {/* Sort Ascending */}
                   <button
                     onClick={() => {
                       const key = currentSort?.key || sortColumns[0]?.key;
@@ -348,7 +345,6 @@ function ChartMenu({ onFullView, onExport, onTable, sortColumns, onSort, current
                 </div>
               )}
             </div>
-
           </div>
         </>
       )}
@@ -411,7 +407,6 @@ const dlCSV = (name: string, headers: string[], rows: any[][]) => {
   a.download = name; a.click();
 };
 
-// ─── Sort helper ───────────────────────────────────────────────────────────────
 const applySort = (data: any[], sort: SortState): any[] => {
   if (!sort) return data;
   return [...data].sort((a, b) => {
@@ -424,7 +419,6 @@ const applySort = (data: any[], sort: SortState): any[] => {
   });
 };
 
-// ── Sort column definitions per chart ─────────────────────────────────────────
 const SORT_COLS = {
   monthwise: [
     { key: 'month', label: 'Month' },
@@ -465,7 +459,6 @@ const SORT_COLS = {
   ],
 };
 
-// ── Table column definitions ───────────────────────────────────────────────────
 const TABLE_COLS = {
   monthwise: [
     { key: 'month', label: 'Month' },
@@ -504,6 +497,34 @@ const TABLE_COLS = {
     { key: 'value', label: 'Spend', isMoney: true },
     { key: 'percent', label: '% Share', isNum: true },
   ],
+};
+
+// ── Pill label renderer (fixes TypeScript error) ───────────────────────────────
+const renderPillLabel = (color: string) => (props: any): any => {
+  const { x, y, value } = props;
+  if (!value || value === 0) return null;
+  const display = value >= 1000 ? fv(value) : Number(value).toFixed(2);
+  const w = display.length * 5.5 + 12;
+  return (
+    <g key={props.index}>
+      <rect x={x - w/2} y={y - 18} width={w} height={14} rx={7} fill={color} />
+      <text x={x} y={y - 8} fill="white" textAnchor="middle" fontSize={8} fontWeight={700}>{display}</text>
+    </g>
+  );
+};
+
+// ── Trend line label renderer (fixes TypeScript error) ─────────────────────────
+const renderTrendLabel = (key: string, color: string) => (props: any): any => {
+  const { x, y, value } = props;
+  if (!value) return null;
+  const display = value >= 1000 ? fv(value) : Number(value).toFixed(2);
+  const w = display.length * 5 + 10;
+  return (
+    <g key={`lbl-${key}-${props.index}`}>
+      <rect x={x - w/2} y={y - 17} width={w} height={13} rx={6} fill={color} />
+      <text x={x} y={y - 8} fill="white" textAnchor="middle" fontSize={8} fontWeight={700}>{display}</text>
+    </g>
+  );
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -659,11 +680,12 @@ export default function AnalyticsCharts({
                 opacity={xKey === 'month' && selectedMonth && selectedMonth !== e.month ? 0.2 : 1} />
             ))}
           </Bar>
+          {/* ── Fix: use renderPillLabel to avoid TypeScript label type error ── */}
           <Line yAxisId="r" type="monotone" dataKey="cpr" name="cost per conversion"
             stroke={CPR_COLOR} strokeWidth={2}
             dot={{ fill: CPR_COLOR, r: 3, strokeWidth: 0 }}
             activeDot={{ r: 5, fill: CPR_COLOR }}
-            label={(props: any) => <PillLabel key={props.index} x={props.x} y={props.y} value={props.value} color={CPR_COLOR} />}
+            label={renderPillLabel(CPR_COLOR)}
           />
         </ComposedChart>
       </ResponsiveContainer>
@@ -733,18 +755,7 @@ export default function AnalyticsCharts({
         {keys.map(({ key, color, label }) => (
           <Line key={key} type="monotone" dataKey={key} name={label}
             stroke={color} strokeWidth={2} dot={false} activeDot={{ r: 4 }}
-            label={(props: any) => {
-              const { x, y, value } = props;
-              if (!value) return null;
-              const display = value >= 1000 ? fv(value) : Number(value).toFixed(2);
-              const w = display.length * 5 + 10;
-              return (
-                <g key={`lbl-${key}-${props.index}`}>
-                  <rect x={x - w/2} y={y - 17} width={w} height={13} rx={6} fill={color} />
-                  <text x={x} y={y - 8} fill="white" textAnchor="middle" fontSize={8} fontWeight={700}>{display}</text>
-                </g>
-              );
-            }}
+            label={renderTrendLabel(key, color)}
           />
         ))}
       </ComposedChart>

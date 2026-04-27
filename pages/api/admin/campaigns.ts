@@ -8,22 +8,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: 'Campaign name and platform are required' });
     }
 
-    const campaign = await prisma.campaignData.create({
-      data: {
-        campaignName,
-        platform,
-        spend: Number(spend || 0),
-        impressions: 0,
-        clicks: 0,
-        conversions: Number(conversions || 0),
-        cpa: Number(conversions && spend ? Number(spend) / Number(conversions) : 0),
-        roas: 0,
-        date: new Date(),
-        clientId: clientId || undefined,
-        productId: productId || undefined,
-      },
-    });
-
+const campaign = await prisma.campaignData.create({
+  data: {
+    campaignName,
+    platform,
+    spend:       spend       ? parseFloat(spend)     : 0,
+    conversions: conversions ? parseInt(conversions) : 0,
+    impressions: 0,
+    clicks:      0,
+    cpa:         0,
+    roas:        0,
+    date:        new Date(),
+  },
+});
     return res.status(201).json(campaign);
   }
 
