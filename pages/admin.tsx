@@ -51,4 +51,82 @@ export default function AdminPage({ userName, campaigns, products, clients }: Ad
                 <input name="campaignName" placeholder="Campaign name" required className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3" />
                 <input name="platform" placeholder="Platform" required className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3" />
                 <input name="clientId" placeholder="Client ID" className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3" />
-                <input name="productId" placeholder="Product ID" className="w-full rounded-3xl border
+                <input name="productId" placeholder="Product ID" className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <input name="spend" placeholder="Spend" type="number" className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3" />
+                  <input name="conversions" placeholder="Conversions" type="number" className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3" />
+                </div>
+                <button type="submit" className="rounded-3xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition">
+                  Create campaign
+                </button>
+                {message && <p className="text-sm text-slate-600">{message}</p>}
+              </form>
+            </section>
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
+              <h2 className="text-xl font-semibold text-slate-900">Summary</h2>
+              <div className="mt-6 space-y-4 text-sm text-slate-600">
+                <p>Products: {products.length}</p>
+                <p>Clients: {clients.length}</p>
+                <p>Campaigns: {campaigns.length}</p>
+                <p className="text-slate-500">Existing objects can be updated in admin API endpoints.</p>
+              </div>
+            </section>
+          </div>
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
+            <h2 className="text-xl font-semibold text-slate-900">Current campaigns</h2>
+            <div className="mt-5 overflow-x-auto">
+              <table className="min-w-full text-left text-sm text-slate-700">
+                <thead>
+                  <tr>
+                    <th className="border-b border-slate-200 px-4 py-4 font-medium text-slate-500">Name</th>
+                    <th className="border-b border-slate-200 px-4 py-4 font-medium text-slate-500">Platform</th>
+                    <th className="border-b border-slate-200 px-4 py-4 font-medium text-slate-500">Spend</th>
+                    <th className="border-b border-slate-200 px-4 py-4 font-medium text-slate-500">Conversions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.map((campaign) => (
+                    <tr key={campaign.id} className="odd:bg-slate-50 hover:bg-slate-100">
+                      <td className="border-b border-slate-200 px-4 py-4">{campaign.campaignName}</td>
+                      <td className="border-b border-slate-200 px-4 py-4">{campaign.platform}</td>
+                      <td className="border-b border-slate-200 px-4 py-4">PKR {campaign.spend.toLocaleString()}</td>
+                      <td className="border-b border-slate-200 px-4 py-4">{campaign.conversions}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+  const token = getCookieToken(req as any);
+  const payload = token ? verifyToken(token) : null;
+
+  if (!payload || payload.role !== 'admin') {
+    return { redirect: { destination: '/', permanent: false } };
+  }
+
+  let campaigns: any[] = [];
+  try {
+    campaigns = await prisma.campaignData.findMany({
+      select: { id: true, campaignName: true, platform: true, spend: true, conversions: true },
+      take: 20,
+    });
+  } catch (e) {
+    console.error('DB error:', e);
+  }
+
+  return {
+    props: {
+      userName: payload.name ?? '',
+      campaigns,
+      products: [],
+      clients: [],
+    },
+  };
+};
